@@ -1,0 +1,6 @@
+cmake-build-debug
+client
+server
+*.txt
+Makefile
+.idea

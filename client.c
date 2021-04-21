@@ -2,7 +2,7 @@
 
 void my_exit(){
     pr_err("Exiting with error\n");
-    remove("/var/run/client_server.pid");
+//    remove("/var/run/client_server.pid");
     exit(-1);
 }
 
@@ -51,12 +51,18 @@ struct sockaddr_in create_addr(char *in_addr, int port){
 
 
 int main(int argc, char **argv) {
+    char *cur_dir = calloc(PATH_MAX, sizeof(char));
+    strcat(getcwd(cur_dir, PATH_MAX), "/log_client.txt");
+    log_init(cur_dir);
+
     int ppid = getppid();
 
     int sock_fd = create_socket();
+
+
     int server_len = sizeof(struct sockaddr_in);
     struct sockaddr_in server_addr = create_addr("127.0.0.1", PORT);
-
+//    memset((void *) &server_addr, 0, server_len);
 
     if(argc < 2) {
         pr_err("Not enough arguments\n");
@@ -93,13 +99,13 @@ int main(int argc, char **argv) {
 
 
         int b_sent = sendto(b_sock_fd, "Is anybody here?", strlen("Is anybody here?"), 0,
-                            (const struct sockaddr *) &b_sock_addr, b_addr_len); //send broadcast message
+                            (const struct sockaddr *) &b_sock_addr, b_addr_len);
         if (b_sent < 0) {
             pr_err("Error while sending (broadcast)\n");
             my_exit();
         }
         int any_server_found = 0;
-        while (1) { //waiting for responses from servers
+        while (1) {
             struct sockaddr_in b_rec_addr;
             char *rec_buf = calloc(MAX_MESSAGE_SIZE, 1);
             int b_addr_size = sizeof(b_rec_addr);

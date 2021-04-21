@@ -1,77 +1,14 @@
 #include "libs.h"
-
-char *get_path(char *key, char **table) { //get path with certain key from table
-    for (int i = 0; i < TABLE_SIZE; ++i) {
-        if (table[i] == NULL) {
-            table[i] = calloc(1, sizeof(key) + 1);
-            strcpy(table[i], key);
-            table[TABLE_SIZE + i] = calloc(1, PATH_MAX);
-            strcpy(table[TABLE_SIZE + i], DEFAULT_PATH);
-            return table[TABLE_SIZE + i];
-        } else if(strcmp(key, table[i]) == 0) {
-            return table[TABLE_SIZE + i];
-        }
-    }
-    exit(1);
-}
+#include "udp_lib.h"
 
 
-void my_exit(){
-    pr_err("Exiting with error\n");
-    remove("/var/run/client_server.pid");
-    exit(-1);
-}
-
-int create_socket() {
-    int num_tries = 0;
-    for (int i = 0; i < MAX_RETRIES; i++){
-        int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sock_fd < 0) {
-            pr_err("Can't create socket: try #%d\n", num_tries);
-            sleep(1);
-            num_tries++;
-        }
-        if(sock_fd > 0) {
-            pr_info("Created socket at try #%d\n", num_tries);
-            return sock_fd;
-        }
-    }
-    my_exit();
-}
-
-void bind_socket(int sock_fd, struct sockaddr_in sock_addr){
-    int num_tries = 0;
-    for(int i = 0; i < MAX_RETRIES; i++) {
-        if (bind(sock_fd, (const struct sockaddr *) (&sock_addr), (socklen_t) sizeof(sock_addr)) < 0) {
-            pr_err("Can't assign address to a socket: try #%d\n", num_tries);
-            sleep(1);
-            num_tries++;
-        }
-        else {
-            pr_info("Assigned address to a socket at try #%d\n", num_tries);
-            return;
-        }
-    }
-    my_exit();
-}
-
-struct sockaddr_in create_addr(char *in_addr, int port){
-    struct in_addr addr;
-    addr.s_addr = inet_addr(in_addr);
-    struct sockaddr_in sock_addr;
-    sock_addr.sin_family = AF_INET;
-    sock_addr.sin_port = htons(port);
-    sock_addr.sin_addr = addr;
-    return sock_addr;
-}
-
-struct context{
+struct context{ //input for thread routine
     pthread_mutex_t *mutex;
     char **table;
     int sock_fd;
 };
 
-void *routine(void* context) {
+void *routine(void* context) { //thread routine
     int sock_fd = ((struct context*)context)->sock_fd;
     char **table = ((struct context*)context)->table;
     pthread_mutex_t *mutex = ((struct context*)context)->mutex;
@@ -238,7 +175,7 @@ void daemon_exec() {
                      (socklen_t *restrict) &b_addr_size);
         if (b < 0) {
             pr_err("Can't read message\n");
-            exit(-1);
+            my_exit();
         }
 
 
@@ -248,7 +185,7 @@ void daemon_exec() {
             if(sendto(b_sock_fd, "Response message", strlen("Response message"), 0, (const struct sockaddr*) &b_rec_addr,
                       b_addr_len) < 0){
                 pr_err("Can't send response message to client\n");
-                exit(-1);
+                my_exit();
             }
         } else if(strncmp(b_buf + PPID_SIZE, "exit", 4) == 0) { //shutting down server without errors
             break;

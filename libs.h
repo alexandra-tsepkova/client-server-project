@@ -19,13 +19,14 @@
 
 #include "log.h"
 
-#define PORT 65532
+#define PORT 65534
 #define MAX_MESSAGE_SIZE 1024
 #define TABLE_SIZE 100
 #define DEFAULT_PATH "/"
 #define MAX_THREADS 5
+#define MAX_RETRIES 5
 #define PPID_SIZE 5
-#define B_PORT 9994
+#define B_PORT 9993
 #define RECV_PORT 9995
 
 char *to_addr (struct sockaddr_in *rec_addr) {
